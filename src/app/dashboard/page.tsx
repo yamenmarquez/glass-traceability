@@ -1,4 +1,4 @@
-// src/app/dashboard/page.tsx
+// src/app/dashboard/page.tsx - Simplified version without extra ClientOnly wrapper
 'use client'
 
 import { AuthGuard } from '@/components/AuthGuard'
@@ -23,7 +23,7 @@ export default function DashboardPage() {
         <div className="p-6 pb-20 lg:pb-6">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">
-              Welcome back, {profile?.name}
+              Welcome back, {profile?.name || 'User'}
             </h1>
             <p className="text-gray-600 mt-2">
               Here's an overview of your glass manufacturing operations

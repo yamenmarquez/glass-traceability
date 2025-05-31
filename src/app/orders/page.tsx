@@ -1,0 +1,26 @@
+// src/app/orders/page.tsx
+'use client'
+
+import { AuthGuard } from '@/components/AuthGuard'
+import { Layout } from '@/components/Layout'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
+export default function OrdersPage() {
+  return (
+    <AuthGuard>
+      <Layout>
+        <div className="p-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">Orders</h1>
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">Order management coming in Phase 2...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    </AuthGuard>
+  )
+}
