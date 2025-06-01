@@ -1,4 +1,4 @@
-// src/app/orders/new/page.tsx - Order Creation Form
+// src/app/orders/new/page.tsx - Complete updated file with label field and natural dimension input
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { DimensionInput } from '@/components/ui/dimension-input'
 import { createSupabaseClient } from '@/lib/supabase'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
@@ -36,19 +37,9 @@ interface Piece {
   height_inches: number
   height_fraction: string
   holes_count: number
+  label: string
   remarks: string
 }
-
-const fractionOptions = [
-  { value: '0', label: '0' },
-  { value: '1/8', label: '1/8' },
-  { value: '1/4', label: '1/4' },
-  { value: '3/8', label: '3/8' },
-  { value: '1/2', label: '1/2' },
-  { value: '5/8', label: '5/8' },
-  { value: '3/4', label: '3/4' },
-  { value: '7/8', label: '7/8' },
-]
 
 const priorityOptions = [
   { value: 'low', label: 'Low' },
@@ -56,6 +47,29 @@ const priorityOptions = [
   { value: 'high', label: 'High' },
   { value: 'urgent', label: 'Urgent' },
 ]
+
+// Enhanced fraction to decimal conversion
+const fractionToDecimal = (fraction: string): number => {
+  const fractionMap: Record<string, number> = {
+    '0': 0,
+    '1/16': 0.0625,
+    '1/8': 0.125,
+    '3/16': 0.1875,
+    '1/4': 0.25,
+    '5/16': 0.3125,
+    '3/8': 0.375,
+    '7/16': 0.4375,
+    '1/2': 0.5,
+    '9/16': 0.5625,
+    '5/8': 0.625,
+    '11/16': 0.6875,
+    '3/4': 0.75,
+    '13/16': 0.8125,
+    '7/8': 0.875,
+    '15/16': 0.9375
+  }
+  return fractionMap[fraction] || 0
+}
 
 export default function NewOrderPage() {
   const router = useRouter()
@@ -75,6 +89,7 @@ export default function NewOrderPage() {
       height_inches: 0,
       height_fraction: '0',
       holes_count: 0,
+      label: '',
       remarks: ''
     }
   ])
@@ -114,7 +129,7 @@ export default function NewOrderPage() {
     const year = now.getFullYear()
     const month = String(now.getMonth() + 1).padStart(2, '0')
     const day = String(now.getDate()).padStart(2, '0')
-    const time = String(now.getTime()).slice(-6) // Last 6 digits of timestamp
+    const time = String(now.getTime()).slice(-6)
     return `GLS-${year}${month}${day}-${time}`
   }
 
@@ -125,25 +140,9 @@ export default function NewOrderPage() {
 
   // Calculate square footage for a piece
   const calculateSquareFeet = (piece: Piece) => {
-    const widthDecimal = piece.width_inches + (piece.width_fraction === '0' ? 0 : 
-      piece.width_fraction === '1/8' ? 0.125 :
-      piece.width_fraction === '1/4' ? 0.25 :
-      piece.width_fraction === '3/8' ? 0.375 :
-      piece.width_fraction === '1/2' ? 0.5 :
-      piece.width_fraction === '5/8' ? 0.625 :
-      piece.width_fraction === '3/4' ? 0.75 :
-      piece.width_fraction === '7/8' ? 0.875 : 0)
-
-    const heightDecimal = piece.height_inches + (piece.height_fraction === '0' ? 0 : 
-      piece.height_fraction === '1/8' ? 0.125 :
-      piece.height_fraction === '1/4' ? 0.25 :
-      piece.height_fraction === '3/8' ? 0.375 :
-      piece.height_fraction === '1/2' ? 0.5 :
-      piece.height_fraction === '5/8' ? 0.625 :
-      piece.height_fraction === '3/4' ? 0.75 :
-      piece.height_fraction === '7/8' ? 0.875 : 0)
-
-    return (widthDecimal * heightDecimal) / 144 // Convert to square feet
+    const widthDecimal = piece.width_inches + fractionToDecimal(piece.width_fraction)
+    const heightDecimal = piece.height_inches + fractionToDecimal(piece.height_fraction)
+    return (widthDecimal * heightDecimal) / 144
   }
 
   // Add new piece
@@ -156,6 +155,7 @@ export default function NewOrderPage() {
       height_inches: 0,
       height_fraction: '0',
       holes_count: 0,
+      label: '',
       remarks: ''
     }])
   }
@@ -164,7 +164,6 @@ export default function NewOrderPage() {
   const removePiece = (index: number) => {
     if (pieces.length > 1) {
       const newPieces = pieces.filter((_, i) => i !== index)
-      // Renumber pieces
       const renumberedPieces = newPieces.map((piece, i) => ({
         ...piece,
         piece_number: i + 1
@@ -177,6 +176,25 @@ export default function NewOrderPage() {
   const updatePiece = (index: number, field: keyof Piece, value: string | number) => {
     const newPieces = [...pieces]
     newPieces[index] = { ...newPieces[index], [field]: value }
+    setPieces(newPieces)
+  }
+
+  // Update piece dimensions
+  const updatePieceDimension = (index: number, field: 'width' | 'height', dimension: { inches: number; fraction: string }) => {
+    const newPieces = [...pieces]
+    if (field === 'width') {
+      newPieces[index] = { 
+        ...newPieces[index], 
+        width_inches: dimension.inches,
+        width_fraction: dimension.fraction
+      }
+    } else {
+      newPieces[index] = { 
+        ...newPieces[index], 
+        height_inches: dimension.inches,
+        height_fraction: dimension.fraction
+      }
+    }
     setPieces(newPieces)
   }
 
@@ -210,7 +228,7 @@ export default function NewOrderPage() {
           priority,
           status: 'pending',
           remarks: remarks || null,
-          barcode: orderNumber // Order barcode is same as order number
+          barcode: orderNumber
         })
         .select()
         .single()
@@ -226,6 +244,7 @@ export default function NewOrderPage() {
         height_inches: piece.height_inches,
         height_fraction: piece.height_fraction,
         holes_count: piece.holes_count,
+        label: piece.label || null,
         barcode: generatePieceBarcode(orderNumber, piece.piece_number),
         current_status: 'pending',
         remarks: piece.remarks || null
@@ -385,65 +404,23 @@ export default function NewOrderPage() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Width (inches)
-                          </label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={piece.width_inches || ''}
-                            onChange={(e) => updatePiece(index, 'width_inches', parseInt(e.target.value) || 0)}
-                          />
-                        </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <DimensionInput
+                          label="Width"
+                          value={{ inches: piece.width_inches, fraction: piece.width_fraction }}
+                          onChange={(value) => updatePieceDimension(index, 'width', value)}
+                          placeholder="e.g., 80 1/16"
+                        />
+
+                        <DimensionInput
+                          label="Height"
+                          value={{ inches: piece.height_inches, fraction: piece.height_fraction }}
+                          onChange={(value) => updatePieceDimension(index, 'height', value)}
+                          placeholder="e.g., 60 3/4"
+                        />
 
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Width Fraction
-                          </label>
-                          <Select
-                            value={piece.width_fraction}
-                            onChange={(e) => updatePiece(index, 'width_fraction', e.target.value)}
-                          >
-                            {fractionOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </Select>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Height (inches)
-                          </label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={piece.height_inches || ''}
-                            onChange={(e) => updatePiece(index, 'height_inches', parseInt(e.target.value) || 0)}
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Height Fraction
-                          </label>
-                          <Select
-                            value={piece.height_fraction}
-                            onChange={(e) => updatePiece(index, 'height_fraction', e.target.value)}
-                          >
-                            {fractionOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </Select>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
                             Holes
                           </label>
                           <Input
@@ -451,21 +428,36 @@ export default function NewOrderPage() {
                             min="0"
                             value={piece.holes_count || ''}
                             onChange={(e) => updatePiece(index, 'holes_count', parseInt(e.target.value) || 0)}
+                            placeholder="0"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Label/Mark
+                          </label>
+                          <Input
+                            value={piece.label}
+                            onChange={(e) => updatePiece(index, 'label', e.target.value)}
+                            placeholder="e.g., A1, B2, Window-1"
+                          />
+                          <div className="text-xs text-gray-500 mt-1">
+                            Installation identifier
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
                             Sq. Ft.
                           </label>
-                          <div className="h-10 px-3 py-2 bg-gray-50 border border-gray-300 rounded-md flex items-center text-sm">
+                          <div className="h-10 px-3 py-2 bg-gray-50 border border-gray-300 rounded-md flex items-center text-sm font-medium">
                             {calculateSquareFeet(piece).toFixed(2)}
                           </div>
                         </div>
                       </div>
 
                       <div className="mt-3">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           Piece Remarks
                         </label>
                         <Input

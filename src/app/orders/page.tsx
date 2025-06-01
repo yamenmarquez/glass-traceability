@@ -1,4 +1,4 @@
-// src/app/orders/page.tsx - Orders List and Management
+// src/app/orders/page.tsx - Orders List and Management (Updated with Edit button)
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -16,6 +16,7 @@ import {
   Search, 
   Filter, 
   Eye, 
+  Edit,
   Package,
   Calendar,
   User,
@@ -75,6 +76,9 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
+
+  // Check if user can edit orders
+  const canEdit = profile?.role === 'admin' || profile?.role === 'operator'
 
   // Load orders
   const loadOrders = async () => {
@@ -153,7 +157,7 @@ export default function OrdersPage() {
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Refresh
                 </Button>
-                {(profile?.role === 'admin' || profile?.role === 'operator') && (
+                {canEdit && (
                   <Link href="/orders/new">
                     <Button>
                       <Plus className="h-4 w-4 mr-2" />
@@ -283,7 +287,7 @@ export default function OrdersPage() {
                       : "Try adjusting your search filters."
                     }
                   </p>
-                  {(profile?.role === 'admin' || profile?.role === 'operator') && orders.length === 0 && (
+                  {canEdit && orders.length === 0 && (
                     <Link href="/orders/new">
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
@@ -361,13 +365,21 @@ export default function OrdersPage() {
                           )}
                         </div>
 
-                        <div className="flex gap-2 ml-4">
+                        <div className="flex flex-col gap-2 ml-4">
                           <Link href={`/orders/${order.id}`}>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" className="w-full">
                               <Eye className="h-4 w-4 mr-2" />
                               View
                             </Button>
                           </Link>
+                          {canEdit && (
+                            <Link href={`/orders/${order.id}/edit`}>
+                              <Button variant="outline" size="sm" className="w-full">
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </Button>
+                            </Link>
+                          )}
                         </div>
                       </div>
                     </div>

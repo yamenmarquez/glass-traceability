@@ -1,4 +1,4 @@
-// src/app/orders/[id]/page.tsx - Order Details with Pieces
+// src/app/orders/[id]/page.tsx - Order Details with Pieces (Updated with label field)
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -63,6 +63,7 @@ interface Piece {
   holes_count: number
   barcode: string
   current_status: string
+  label: string | null
   remarks: string | null
   location: string | null
   created_at: string
@@ -388,7 +389,7 @@ export default function OrderDetailsPage() {
             </div>
           </div>
 
-          {/* Pieces List */}
+          {/* Pieces List - UPDATED WITH LABEL FIELD */}
           <Card className="mt-6">
             <CardHeader>
               <CardTitle>Pieces ({pieces.length})</CardTitle>
@@ -404,6 +405,7 @@ export default function OrderDetailsPage() {
                     <thead>
                       <tr className="border-b">
                         <th className="text-left py-3 px-2">Piece #</th>
+                        <th className="text-left py-3 px-2">Label/Mark</th>
                         <th className="text-left py-3 px-2">Dimensions</th>
                         <th className="text-left py-3 px-2">Sq Ft</th>
                         <th className="text-left py-3 px-2">Holes</th>
@@ -418,10 +420,21 @@ export default function OrderDetailsPage() {
                         <tr key={piece.id} className="border-b hover:bg-gray-50">
                           <td className="py-3 px-2 font-medium">#{piece.piece_number}</td>
                           <td className="py-3 px-2">
-                            {piece.width_inches}{piece.width_fraction !== '0' && ` ${piece.width_fraction}`}" × {' '}
-                            {piece.height_inches}{piece.height_fraction !== '0' && ` ${piece.height_fraction}`}"
+                            {piece.label ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {piece.label}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-400">No label</span>
+                            )}
                           </td>
-                          <td className="py-3 px-2">{piece.sq_ft.toFixed(2)}</td>
+                          <td className="py-3 px-2">
+                            <div className="font-mono text-sm">
+                              {piece.width_inches}{piece.width_fraction !== '0' && ` ${piece.width_fraction}`}" × {' '}
+                              {piece.height_inches}{piece.height_fraction !== '0' && ` ${piece.height_fraction}`}"
+                            </div>
+                          </td>
+                          <td className="py-3 px-2 font-medium">{piece.sq_ft.toFixed(2)}</td>
                           <td className="py-3 px-2">{piece.holes_count}</td>
                           <td className="py-3 px-2">
                             <Badge variant="outline" className="text-xs">
@@ -429,23 +442,25 @@ export default function OrderDetailsPage() {
                             </Badge>
                           </td>
                           <td className="py-3 px-2">
-                            <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                            <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">
                               {piece.barcode}
                             </code>
                           </td>
-                          <td className="py-3 px-2">
+                          <td className="py-3 px-2 max-w-32">
                             {piece.remarks ? (
-                              <span className="text-xs text-gray-600">{piece.remarks}</span>
+                              <span className="text-xs text-gray-600 truncate block" title={piece.remarks}>
+                                {piece.remarks}
+                              </span>
                             ) : (
                               <span className="text-xs text-gray-400">-</span>
                             )}
                           </td>
                           <td className="py-3 px-2">
                             <div className="flex gap-1">
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" title="Show QR Code">
                                 <QrCode className="h-3 w-3" />
                               </Button>
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" title="Print Label">
                                 <Printer className="h-3 w-3" />
                               </Button>
                             </div>

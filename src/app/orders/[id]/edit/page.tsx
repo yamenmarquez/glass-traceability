@@ -1,4 +1,4 @@
-// src/app/orders/[id]/edit/page.tsx - Edit Order Form
+// src/app/orders/[id]/edit/page.tsx - Edit Order Form (Updated with label field)
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { createSupabaseClient } from '@/lib/supabase'
 import { ArrowLeft, Save, Trash2, Plus } from 'lucide-react'
+import { DimensionInput } from '@/components/ui/dimension-input'
 import Link from 'next/link'
 
 interface Client {
@@ -47,6 +48,7 @@ interface Piece {
   height_inches: number
   height_fraction: string
   holes_count: number
+  label: string | null  // Added label field
   remarks: string | null
   barcode: string
 }
@@ -172,10 +174,23 @@ export default function EditOrderPage() {
     return (widthDecimal * heightDecimal) / 144
   }
 
-  // Update piece
-  const updatePiece = (index: number, field: keyof Piece, value: string | number) => {
+  // Update piece - Updated to handle both single fields and dimension updates
+  const updatePiece = (index: number, field: keyof Piece, value: string | number | null) => {
     const newPieces = [...pieces]
     newPieces[index] = { ...newPieces[index], [field]: value }
+    setPieces(newPieces)
+  }
+
+  // Update piece dimensions (for DimensionInput compatibility)
+  const updatePieceDimensions = (index: number, type: 'width' | 'height', value: { inches: number; fraction: string }) => {
+    const newPieces = [...pieces]
+    if (type === 'width') {
+      newPieces[index].width_inches = value.inches
+      newPieces[index].width_fraction = value.fraction
+    } else {
+      newPieces[index].height_inches = value.inches
+      newPieces[index].height_fraction = value.fraction
+    }
     setPieces(newPieces)
   }
 
@@ -194,7 +209,8 @@ export default function EditOrderPage() {
       height_inches: 0,
       height_fraction: '0',
       holes_count: 0,
-      remarks: '',
+      label: null,  // Added label field
+      remarks: null,
       barcode: newBarcode
     }])
   }
@@ -269,6 +285,7 @@ export default function EditOrderPage() {
           height_fraction: piece.height_fraction,
           holes_count: piece.holes_count,
           barcode: piece.barcode,
+          label: piece.label || null,  // Added label field
           remarks: piece.remarks || null,
           updated_at: new Date().toISOString()
         }
@@ -463,7 +480,7 @@ export default function EditOrderPage() {
               </CardContent>
             </Card>
 
-            {/* Pieces */}
+            {/* Pieces - UPDATED WITH LABEL FIELD */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -484,6 +501,11 @@ export default function EditOrderPage() {
                           <span className="ml-2 text-xs text-gray-500 font-mono">
                             {piece.barcode}
                           </span>
+                          {piece.label && (
+                            <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {piece.label}
+                            </span>
+                          )}
                         </h4>
                         <Button
                           type="button"
@@ -495,65 +517,23 @@ export default function EditOrderPage() {
                         </Button>
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Width (inches)
-                          </label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={piece.width_inches || ''}
-                            onChange={(e) => updatePiece(index, 'width_inches', parseInt(e.target.value) || 0)}
-                          />
-                        </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <DimensionInput
+                          label="Width"
+                          value={{ inches: piece.width_inches, fraction: piece.width_fraction }}
+                          onChange={(value) => updatePieceDimensions(index, 'width', value)}
+                          placeholder="e.g., 80 1/16"
+                        />
+
+                        <DimensionInput
+                          label="Height"
+                          value={{ inches: piece.height_inches, fraction: piece.height_fraction }}
+                          onChange={(value) => updatePieceDimensions(index, 'height', value)}
+                          placeholder="e.g., 60 3/4"
+                        />
 
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Width Fraction
-                          </label>
-                          <Select
-                            value={piece.width_fraction}
-                            onChange={(e) => updatePiece(index, 'width_fraction', e.target.value)}
-                          >
-                            {fractionOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </Select>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Height (inches)
-                          </label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={piece.height_inches || ''}
-                            onChange={(e) => updatePiece(index, 'height_inches', parseInt(e.target.value) || 0)}
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Height Fraction
-                          </label>
-                          <Select
-                            value={piece.height_fraction}
-                            onChange={(e) => updatePiece(index, 'height_fraction', e.target.value)}
-                          >
-                            {fractionOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </Select>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
                             Holes
                           </label>
                           <Input
@@ -561,26 +541,41 @@ export default function EditOrderPage() {
                             min="0"
                             value={piece.holes_count || ''}
                             onChange={(e) => updatePiece(index, 'holes_count', parseInt(e.target.value) || 0)}
+                            placeholder="0"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Label/Mark
+                          </label>
+                          <Input
+                            value={piece.label || ''}
+                            onChange={(e) => updatePiece(index, 'label', e.target.value || null)}
+                            placeholder="e.g., A1, B2, Window-1"
+                          />
+                          <div className="text-xs text-gray-500 mt-1">
+                            Installation identifier
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
                             Sq. Ft.
                           </label>
-                          <div className="h-10 px-3 py-2 bg-gray-50 border border-gray-300 rounded-md flex items-center text-sm">
+                          <div className="h-10 px-3 py-2 bg-gray-50 border border-gray-300 rounded-md flex items-center text-sm font-medium">
                             {calculateSquareFeet(piece).toFixed(2)}
                           </div>
                         </div>
                       </div>
 
                       <div className="mt-3">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           Piece Remarks
                         </label>
                         <Input
                           value={piece.remarks || ''}
-                          onChange={(e) => updatePiece(index, 'remarks', e.target.value)}
+                          onChange={(e) => updatePiece(index, 'remarks', e.target.value || null)}
                           placeholder="Notes about this piece..."
                         />
                       </div>
