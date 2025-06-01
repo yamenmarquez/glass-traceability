@@ -1,4 +1,4 @@
-// src/components/AuthGuard.tsx - Fixed version with better loading handling
+// src/components/AuthGuard.tsx
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'

@@ -1,4 +1,4 @@
-// src/app/dashboard/page.tsx - Simplified version without extra ClientOnly wrapper
+// src/app/dashboard/page.tsx - Updated with working links
 'use client'
 
 import { AuthGuard } from '@/components/AuthGuard'
@@ -13,6 +13,7 @@ import {
   Users,
   BarChart3
 } from 'lucide-react'
+import Link from 'next/link'
 
 export default function DashboardPage() {
   const { profile } = useAuth()
@@ -130,28 +131,36 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <Package className="h-8 w-8 text-blue-600 mb-2" />
-                    <p className="font-medium">New Order</p>
-                    <p className="text-sm text-gray-600">Create new glass order</p>
-                  </div>
-                  <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <BarChart3 className="h-8 w-8 text-green-600 mb-2" />
-                    <p className="font-medium">Scanner</p>
-                    <p className="text-sm text-gray-600">Update piece status</p>
-                  </div>
+                  <Link href="/orders/new">
+                    <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <Package className="h-8 w-8 text-blue-600 mb-2" />
+                      <p className="font-medium">New Order</p>
+                      <p className="text-sm text-gray-600">Create new glass order</p>
+                    </div>
+                  </Link>
+                  <Link href="/scanner">
+                    <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <BarChart3 className="h-8 w-8 text-green-600 mb-2" />
+                      <p className="font-medium">Scanner</p>
+                      <p className="text-sm text-gray-600">Update piece status</p>
+                    </div>
+                  </Link>
                   {profile?.role === 'admin' && (
                     <>
-                      <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <Users className="h-8 w-8 text-purple-600 mb-2" />
-                        <p className="font-medium">User Management</p>
-                        <p className="text-sm text-gray-600">Manage system users</p>
-                      </div>
-                      <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <BarChart3 className="h-8 w-8 text-orange-600 mb-2" />
-                        <p className="font-medium">Reports</p>
-                        <p className="text-sm text-gray-600">View analytics</p>
-                      </div>
+                      <Link href="/admin">
+                        <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                          <Users className="h-8 w-8 text-purple-600 mb-2" />
+                          <p className="font-medium">User Management</p>
+                          <p className="text-sm text-gray-600">Manage system users</p>
+                        </div>
+                      </Link>
+                      <Link href="/reports">
+                        <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                          <BarChart3 className="h-8 w-8 text-orange-600 mb-2" />
+                          <p className="font-medium">Reports</p>
+                          <p className="text-sm text-gray-600">View analytics</p>
+                        </div>
+                      </Link>
                     </>
                   )}
                 </div>
