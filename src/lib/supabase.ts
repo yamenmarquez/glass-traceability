@@ -1,4 +1,4 @@
-// src/lib/supabase.ts - REPLACE COMPLETELY with updated types
+// src/lib/supabase.ts - REPLACE COMPLETELY with updated types matching your actual schema
 import { createBrowserClient } from '@supabase/ssr'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
@@ -82,7 +82,7 @@ export function createSupabaseAdmin() {
   )
 }
 
-// Types - UPDATED WITH LABEL FIELD
+// Types - UPDATED TO MATCH YOUR ACTUAL SCHEMA
 export type Database = {
   public: {
     Tables: {
@@ -145,6 +145,7 @@ export type Database = {
           description: string | null
           thickness: number | null
           color: string | null
+          specifications: any | null // jsonb
           active: boolean
           created_at: string
           updated_at: string
@@ -154,6 +155,7 @@ export type Database = {
           description?: string | null
           thickness?: number | null
           color?: string | null
+          specifications?: any | null
           active?: boolean
         }
         Update: {
@@ -161,6 +163,7 @@ export type Database = {
           description?: string | null
           thickness?: number | null
           color?: string | null
+          specifications?: any | null
           active?: boolean
         }
       }
@@ -185,7 +188,7 @@ export type Database = {
           client_po?: string | null
           barcode?: string | null
           glass_type_id: string
-          total_pieces: number
+          total_pieces?: number
           priority?: 'low' | 'medium' | 'high' | 'urgent'
           status?: 'pending' | 'in_progress' | 'completed' | 'cancelled'
           remarks?: string | null
@@ -209,29 +212,29 @@ export type Database = {
           width_fraction: string
           height_inches: number
           height_fraction: string
-          sq_ft: number
           holes_count: number
           barcode: string
           current_status: string
-          label: string | null  // Added label field
           remarks: string | null
           location: string | null
+          label: string | null
+          sq_ft: number
           created_at: string
           updated_at: string
         }
         Insert: {
           order_number: string
           piece_number: number
-          width_inches: number
-          width_fraction: string
-          height_inches: number
-          height_fraction: string
-          holes_count: number
+          width_inches?: number
+          width_fraction?: string
+          height_inches?: number
+          height_fraction?: string
+          holes_count?: number
           barcode: string
-          current_status: string
-          label?: string | null  // Added label field
+          current_status?: string
           remarks?: string | null
           location?: string | null
+          label?: string | null
         }
         Update: {
           piece_number?: number
@@ -241,42 +244,170 @@ export type Database = {
           height_fraction?: string
           holes_count?: number
           current_status?: string
-          label?: string | null  // Added label field
           remarks?: string | null
+          location?: string | null
+          label?: string | null
+        }
+      }
+      work_stations: {
+        Row: {
+          id: string
+          station_name: string
+          active: boolean
+          order_sequence: number
+          created_at: string
+          updated_at: string
+          // NEW COLUMNS ADDED
+          station_secret: string | null
+          permissions: string[] | null
+          location: string | null
+        }
+        Insert: {
+          station_name: string
+          active?: boolean
+          order_sequence?: number
+          station_secret?: string | null
+          permissions?: string[] | null
+          location?: string | null
+        }
+        Update: {
+          station_name?: string
+          active?: boolean
+          order_sequence?: number
+          station_secret?: string | null
+          permissions?: string[] | null
           location?: string | null
         }
       }
-      status_history: {
+      service_sessions: {
         Row: {
           id: string
-          piece_id: string
-          old_status: string | null
-          new_status: string
-          changed_by: string
-          notes: string | null
+          station_id: string
+          station_name: string
+          location: string
+          permissions: string[]
+          expires_at: string
+          last_activity: string
+          active: boolean
           created_at: string
         }
         Insert: {
-          piece_id: string
-          old_status?: string | null
-          new_status: string
-          changed_by: string
-          notes?: string | null
+          station_id: string
+          station_name: string
+          location: string
+          permissions?: string[]
+          expires_at: string
+          last_activity?: string
+          active?: boolean
         }
         Update: {
-          notes?: string | null
+          station_name?: string
+          location?: string
+          permissions?: string[]
+          expires_at?: string
+          last_activity?: string
+          active?: boolean
+        }
+      }
+      processing_history: {
+        Row: {
+          id: string
+          barcode: string
+          station_id: string | null
+          service_station_id: string | null // NEW COLUMN
+          processed_at: string
+          employee: string
+          observations: string | null
+          created_at: string
+        }
+        Insert: {
+          barcode: string
+          station_id?: string | null
+          service_station_id?: string | null
+          processed_at?: string
+          employee: string
+          observations?: string | null
+        }
+        Update: {
+          barcode?: string
+          station_id?: string | null
+          service_station_id?: string | null
+          processed_at?: string
+          employee?: string
+          observations?: string | null
+        }
+      }
+      status_config: {
+        Row: {
+          id: string
+          status_name: string
+          station_id: string | null
+          color: string
+          is_final: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          status_name: string
+          station_id?: string | null
+          color?: string
+          is_final?: boolean
+        }
+        Update: {
+          status_name?: string
+          station_id?: string | null
+          color?: string
+          is_final?: boolean
         }
       }
     }
     Views: {
-      [_ in never]: never
+      station_status: {
+        Row: {
+          id: string
+          station_name: string
+          location: string | null
+          station_active: boolean
+          order_sequence: number
+          session_active: boolean | null
+          expires_at: string | null
+          last_activity: string | null
+          status: string
+        }
+      }
     }
     Functions: {
-      [_ in never]: never
+      update_piece_status_via_scanner: {
+        Args: {
+          piece_barcode: string
+          new_status: string
+          station_id_param: string
+          employee_name?: string
+          notes?: string
+        }
+        Returns: any // JSON response
+      }
+      get_station_statistics: {
+        Args: {
+          station_id_param?: string
+        }
+        Returns: Array<{
+          station_id: string
+          station_name: string
+          total_scans: number
+          scans_today: number
+          last_activity: string | null
+          current_status: string
+        }>
+      }
+      cleanup_expired_sessions: {
+        Args: {}
+        Returns: number
+      }
     }
     Enums: {
       user_role: 'admin' | 'operator' | 'viewer'
-      order_priority: 'low' | 'medium' | 'high' | 'urgent'
+      priority_level: 'low' | 'medium' | 'high' | 'urgent'
       order_status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
       piece_status: 'pending' | 'cutting' | 'tempering' | 'edge_work' | 'quality_check' | 'completed' | 'defective'
     }
