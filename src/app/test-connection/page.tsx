@@ -12,9 +12,9 @@ export default function TestConnection() {
         const supabase = createSupabaseClient()
         
         // Test basic connection
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('profiles')
-          .select('count')
+          .select('id')
           .limit(1)
         
         if (error) {
