@@ -1,4 +1,4 @@
-// src/lib/supabase.ts - REPLACE COMPLETELY with updated types matching your actual schema
+// Supabase client helpers with typed schema.
 import { createBrowserClient } from '@supabase/ssr'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
