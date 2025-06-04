@@ -79,7 +79,7 @@ const decimalToFraction = (decimal: number): string => {
 }
 
 // Parse input like "80 1/16" or "80.0625" or "80" into inches and fraction
-const parseInput = (input: string): { inches: number; fraction: string } => {
+export const parseInput = (input: string): { inches: number; fraction: string } => {
   const trimmed = input.trim()
   
   // Handle empty input
