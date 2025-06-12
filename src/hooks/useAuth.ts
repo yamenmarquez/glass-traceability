@@ -41,6 +41,38 @@ export function useAuth() {
   const retryCountRef = useRef(0)
   const maxRetries = 3
 
+  // Track how long we've been in loading state
+  const loadingStartRef = useRef<number | null>(null)
+  const [authLoopDetected, setAuthLoopDetected] = useState(false)
+
+  // Detect authentication loops
+  useEffect(() => {
+    if (loading && !authLoopDetected) {
+      if (!loadingStartRef.current) {
+        loadingStartRef.current = Date.now()
+      } else {
+        const loadingTime = Date.now() - loadingStartRef.current
+        // If we've been loading for more than 10 seconds, likely an auth loop
+        if (loadingTime > 10000) {
+          console.error('Authentication loop detected - clearing all auth state')
+          setAuthLoopDetected(true)
+          
+          // Force clear everything
+          localStorage.clear()
+          sessionStorage.clear()
+          
+          // Clear Supabase session
+          supabase.auth.signOut({ scope: 'local' }).then(() => {
+            // Hard redirect to login
+            window.location.href = '/auth/login'
+          })
+        }
+      }
+    } else if (!loading) {
+      loadingStartRef.current = null
+    }
+  }, [loading, authLoopDetected, supabase.auth])
+
   // Track user activity
   const updateLastActivity = useCallback(() => {
     setAuthState(prev => ({ ...prev, lastActivity: Date.now() }))

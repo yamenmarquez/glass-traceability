@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react'
+import { EmergencyAuthReset } from '@/components/EmergencyAuthReset'
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -22,6 +23,7 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
   const [showRetry, setShowRetry] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
   const [loadingTimeout, setLoadingTimeout] = useState(false)
+  const [showEmergencyReset, setShowEmergencyReset] = useState(false)
 
   // Monitor network connectivity
   useEffect(() => {
@@ -51,7 +53,16 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
         setLoadingTimeout(true)
       }, 15000) // 15 seconds timeout
 
-      return () => clearTimeout(timeout)
+      // Emergency timeout for infinite loops
+      const emergencyTimeout = setTimeout(() => {
+        console.log('Emergency timeout reached - likely auth loop')
+        setShowEmergencyReset(true)
+      }, 30000) // 30 seconds emergency timeout
+
+      return () => {
+        clearTimeout(timeout)
+        clearTimeout(emergencyTimeout)
+      }
     } else {
       setLoadingTimeout(false)
     }
@@ -270,6 +281,11 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
 
   if (!shouldRender) {
     return null
+  }
+
+  // Show emergency reset if auth loop detected
+  if (showEmergencyReset) {
+    return <EmergencyAuthReset />
   }
 
   return <>{children}</>
