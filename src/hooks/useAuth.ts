@@ -47,7 +47,7 @@ export function useAuth() {
 
   // Detect authentication loops
   useEffect(() => {
-    if (loading && !authLoopDetected) {
+    if (authState.loading && !authLoopDetected) {
       if (!loadingStartRef.current) {
         loadingStartRef.current = Date.now()
       } else {
@@ -68,10 +68,10 @@ export function useAuth() {
           })
         }
       }
-    } else if (!loading) {
+    } else if (!authState.loading) {
       loadingStartRef.current = null
     }
-  }, [loading, authLoopDetected, supabase.auth])
+  }, [authState.loading, authLoopDetected, supabase.auth])
 
   // Track user activity
   const updateLastActivity = useCallback(() => {
