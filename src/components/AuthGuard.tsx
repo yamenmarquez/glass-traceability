@@ -117,6 +117,7 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
   const handleRetry = async () => {
     setShowRetry(false)
     setRetryCount(0)
+    setLoadingTimeout(false)
     
     try {
       await refreshSession()
@@ -127,8 +128,16 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
     }
   }
 
+  const handleForceReload = () => {
+    // Clear all local storage and reload
+    localStorage.clear()
+    sessionStorage.clear()
+    window.location.reload()
+  }
+
   const handleSignOut = () => {
-    router.push('/auth/login')
+    // Force a hard redirect to login
+    window.location.href = '/auth/login'
   }
 
   // Show network connectivity warning
@@ -220,13 +229,22 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
                     Updating your session for security
                   </div>
                   {loadingTimeout && (
-                    <div className="mt-3">
+                    <div className="mt-3 space-y-2">
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => window.location.reload()}
+                        onClick={handleForceReload}
+                        className="w-full"
                       >
-                        Reload Page
+                        Force Reload
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleSignOut}
+                        className="w-full"
+                      >
+                        Go to Login
                       </Button>
                     </div>
                   )}

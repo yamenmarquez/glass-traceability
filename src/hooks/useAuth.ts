@@ -194,18 +194,24 @@ export function useAuth() {
     const refreshAt = expiresAt - (5 * 60 * 1000) // 5 minutes before expiry
     const timeUntilRefresh = refreshAt - Date.now()
 
-    if (timeUntilRefresh > 0) {
+    // Only set up refresh if we have reasonable time left (more than 1 minute)
+    if (timeUntilRefresh > 60000) { // 1 minute minimum
       console.log(`Token will be refreshed in ${Math.round(timeUntilRefresh / 1000 / 60)} minutes`)
       
       refreshTimeoutRef.current = setTimeout(() => {
         console.log('Automatic token refresh triggered')
         refreshSession()
       }, timeUntilRefresh)
+    } else if (timeUntilRefresh > 0) {
+      // Token expires soon but not immediately - wait a bit then refresh
+      console.log(`Token expires in ${Math.round(timeUntilRefresh / 1000)} seconds - setting short refresh timer`)
+      refreshTimeoutRef.current = setTimeout(() => {
+        console.log('Short-term token refresh triggered')
+        refreshSession()
+      }, Math.max(timeUntilRefresh - 10000, 5000)) // Refresh 10 seconds before expiry, minimum 5 seconds
     } else {
-      // Token is already expired or about to expire, refresh immediately
-      console.log('Token expired or about to expire, refreshing immediately')
-      // Don't refresh immediately to avoid infinite loops
-      // Let the auth state change handler deal with expired tokens
+      // Token is already expired - let Supabase handle it naturally
+      console.log('Token already expired - letting Supabase handle refresh naturally')
     }
   }, [refreshSession])
 
