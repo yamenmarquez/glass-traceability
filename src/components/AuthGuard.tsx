@@ -21,6 +21,7 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
   const [retryCount, setRetryCount] = useState(0)
   const [showRetry, setShowRetry] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
 
   // Monitor network connectivity
   useEffect(() => {
@@ -41,6 +42,20 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
       window.removeEventListener('offline', handleOffline)
     }
   }, [showRetry])
+
+  // Add loading timeout to prevent infinite loading
+  useEffect(() => {
+    if (loading || isRefreshing) {
+      const timeout = setTimeout(() => {
+        console.log('Loading timeout reached - showing retry option')
+        setLoadingTimeout(true)
+      }, 15000) // 15 seconds timeout
+
+      return () => clearTimeout(timeout)
+    } else {
+      setLoadingTimeout(false)
+    }
+  }, [loading, isRefreshing])
 
   useEffect(() => {
     if (loading || isRefreshing) return
@@ -204,18 +219,20 @@ export function AuthGuard({ children, requiredRole }: AuthGuardProps) {
                   <div className="text-xs text-gray-500">
                     Updating your session for security
                   </div>
-                  <div className="mt-3">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => window.location.reload()}
-                    >
-                      Reload Page
-                    </Button>
-                  </div>
+                  {loadingTimeout && (
+                    <div className="mt-3">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => window.location.reload()}
+                      >
+                        Reload Page
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
-              {loading && retryCount > 2 && (
+              {(loading && retryCount > 2) || loadingTimeout && (
                 <div className="mt-4">
                   <Button 
                     variant="outline" 

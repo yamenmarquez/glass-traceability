@@ -204,7 +204,8 @@ export function useAuth() {
     } else {
       // Token is already expired or about to expire, refresh immediately
       console.log('Token expired or about to expire, refreshing immediately')
-      refreshSession()
+      // Don't refresh immediately to avoid infinite loops
+      // Let the auth state change handler deal with expired tokens
     }
   }, [refreshSession])
 
