@@ -1,4 +1,4 @@
-// src/hooks/useAuth.ts - Enhanced version with automatic token refresh and robust session management
+// src/hooks/useAuth.ts - FINAL VERSION with SIGNED_IN loop fix
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
@@ -41,9 +41,12 @@ export function useAuth() {
   const retryCountRef = useRef(0)
   const maxRetries = 3
 
-  // Track how long we've been in loading state
+  // Track how long we've been in loading state - FIXED PLACEMENT
   const loadingStartRef = useRef<number | null>(null)
   const [authLoopDetected, setAuthLoopDetected] = useState(false)
+  
+  // Track processed events to prevent duplicates
+  const processedEventsRef = useRef<Set<string>>(new Set())
 
   // Detect authentication loops
   useEffect(() => {
@@ -337,15 +340,33 @@ export function useAuth() {
 
     initializeAuth()
 
-    // Set up auth state change listener
+    // Set up auth state change listener with duplicate prevention
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id)
         
         if (!isMounted) return
 
+        // Create unique event key to prevent duplicates
+        const eventKey = `${event}-${session?.user?.id || 'null'}-${session?.expires_at || 'null'}`
+        
+        // Check if we've already processed this exact event
+        if (processedEventsRef.current.has(eventKey)) {
+          console.log('Duplicate auth event detected - ignoring:', eventKey)
+          return
+        }
+        
+        // Mark this event as processed
+        processedEventsRef.current.add(eventKey)
+        
+        // Clean up old processed events (keep last 10)
+        if (processedEventsRef.current.size > 10) {
+          const eventsArray = Array.from(processedEventsRef.current)
+          processedEventsRef.current = new Set(eventsArray.slice(-5))
+        }
+
         // Handle sign out events
-        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
+        if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
           console.log('User signed out or token refresh failed')
           setAuthState(prev => ({
             ...prev,
@@ -369,7 +390,104 @@ export function useAuth() {
           return
         }
 
-        // Update activity timestamp on any auth event
+        // Handle token refresh - don't reload profile if it's the same user
+        if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('Token refreshed successfully for user:', session.user.id)
+          
+          // Only update session and setup refresh, don't reload profile unless user changed
+          setAuthState(prev => {
+            // If it's the same user, just update the session
+            if (prev.user?.id === session.user.id) {
+              return {
+                ...prev,
+                session,
+                isRefreshing: false,
+                loading: false // Ensure loading is false
+              }
+            }
+            // Different user, update everything
+            return {
+              ...prev,
+              user: session.user,
+              session,
+              isRefreshing: false,
+              loading: false
+            }
+          })
+          
+          // Set up automatic token refresh for refreshed session
+          setupTokenRefresh(session)
+          
+          // Only fetch profile if user changed
+          if (authState.user?.id !== session.user.id) {
+            const profileData = await fetchProfile(session.user.id)
+            if (isMounted) {
+              setAuthState(prev => ({
+                ...prev,
+                profile: profileData,
+                loading: false
+              }))
+            }
+          }
+          
+          if (isMounted) {
+            setInitialized(true)
+          }
+          return
+        }
+
+        // Handle SIGNED_IN events - CRITICAL FIX FOR LOOP
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('User signed in:', session.user.id)
+          
+          // Check if this is actually a new sign-in or just a duplicate event
+          if (authState.user?.id === session.user.id && authState.profile && authState.session) {
+            console.log('Duplicate SIGNED_IN event for same authenticated user - ignoring')
+            // Just update the session and ensure loading is false
+            setAuthState(prev => ({
+              ...prev,
+              session,
+              loading: false,
+              isRefreshing: false
+            }))
+            setupTokenRefresh(session)
+            if (isMounted) {
+              setInitialized(true)
+            }
+            return
+          }
+          
+          // This is a genuine new sign-in
+          updateLastActivity()
+
+          setAuthState(prev => ({
+            ...prev,
+            user: session.user,
+            session,
+            isRefreshing: false
+          }))
+          
+          // Set up automatic token refresh for new session
+          setupTokenRefresh(session)
+          
+          // Fetch profile for signed in user
+          const profileData = await fetchProfile(session.user.id)
+          if (isMounted) {
+            setAuthState(prev => ({
+              ...prev,
+              profile: profileData,
+              loading: false
+            }))
+          }
+          
+          if (isMounted) {
+            setInitialized(true)
+          }
+          return
+        }
+
+        // Handle any other auth events
+        console.log('Other auth event:', event)
         updateLastActivity()
 
         const user = session?.user ?? null
@@ -377,14 +495,11 @@ export function useAuth() {
           ...prev,
           user,
           session,
-          isRefreshing: false // Reset refreshing state on auth change
+          isRefreshing: false
         }))
         
         if (session?.user) {
-          // Set up automatic token refresh for new session
           setupTokenRefresh(session)
-          
-          // Fetch profile for new/updated session
           const profileData = await fetchProfile(session.user.id)
           if (isMounted) {
             setAuthState(prev => ({
@@ -394,7 +509,6 @@ export function useAuth() {
             }))
           }
         } else {
-          // Clear timeouts when session ends
           if (refreshTimeoutRef.current) {
             clearTimeout(refreshTimeoutRef.current)
           }
